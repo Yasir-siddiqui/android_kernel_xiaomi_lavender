@@ -1878,7 +1878,6 @@ static int lpm_probe(struct platform_device *pdev)
 	int ret;
 	int size;
 	struct kobject *module_kobj = NULL;
-	struct md_region md_entry;
 
 	get_online_cpus();
 	lpm_root_node = lpm_of_parse_cluster(pdev);
