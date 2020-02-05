@@ -3,7 +3,7 @@
  *
  * Copyright (C) Linaro 2012
  * Author: <benjamin.gaignard@linaro.org> for ST-Ericsson.
- * Copyright (c) 2013-2017, 2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -344,8 +344,7 @@ static void ion_secure_cma_free_chunk(struct ion_cma_secure_heap *sheap,
 
 }
 
-static unsigned long
-__ion_secure_cma_shrink_pool(struct ion_cma_secure_heap *sheap, int max_nr)
+void __ion_secure_cma_shrink_pool(struct ion_cma_secure_heap *sheap, int max_nr)
 {
 	struct list_head *entry, *_n;
 	unsigned long drained_size = 0, skipped_size = 0;
@@ -369,7 +368,6 @@ __ion_secure_cma_shrink_pool(struct ion_cma_secure_heap *sheap, int max_nr)
 	}
 
 	trace_ion_secure_cma_shrink_pool_end(drained_size, skipped_size);
-	return drained_size;
 }
 
 int ion_secure_cma_drain_pool(struct ion_heap *heap, void *unused)
@@ -387,7 +385,6 @@ int ion_secure_cma_drain_pool(struct ion_heap *heap, void *unused)
 static unsigned long ion_secure_cma_shrinker(struct shrinker *shrinker,
 					struct shrink_control *sc)
 {
-	unsigned long freed;
 	struct ion_cma_secure_heap *sheap = container_of(shrinker,
 					struct ion_cma_secure_heap, shrinker);
 	int nr_to_scan = sc->nr_to_scan;
@@ -400,11 +397,11 @@ static unsigned long ion_secure_cma_shrinker(struct shrinker *shrinker,
 	if (!mutex_trylock(&sheap->chunk_lock))
 		return -1;
 
-	freed = __ion_secure_cma_shrink_pool(sheap, nr_to_scan);
+	__ion_secure_cma_shrink_pool(sheap, nr_to_scan);
 
 	mutex_unlock(&sheap->chunk_lock);
 
-	return freed;
+	return atomic_read(&sheap->total_pool_size);
 }
 
 static unsigned long ion_secure_cma_shrinker_count(struct shrinker *shrinker,
@@ -854,7 +851,7 @@ struct ion_heap *ion_secure_cma_heap_create(struct ion_platform_heap *data)
 	mutex_init(&sheap->chunk_lock);
 	mutex_init(&sheap->alloc_lock);
 	sheap->heap.ops = &ion_secure_cma_ops;
-	sheap->heap.type = (enum ion_heap_type)ION_HEAP_TYPE_SECURE_DMA;
+	sheap->heap.type = ION_HEAP_TYPE_SECURE_DMA;
 	sheap->npages = data->size >> PAGE_SHIFT;
 	sheap->base = data->base;
 	sheap->heap_size = data->size;
