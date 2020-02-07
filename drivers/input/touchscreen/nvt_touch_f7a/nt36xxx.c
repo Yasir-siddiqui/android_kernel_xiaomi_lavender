@@ -83,6 +83,14 @@ static void do_nvt_ts_resume_work(struct work_struct *work);
 
 static int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data);
 
+#if TOUCH_KEY_NUM > 0
+const uint16_t touch_key_array[TOUCH_KEY_NUM] = {
+	KEY_BACK,
+	KEY_HOME,
+	KEY_MENU
+};
+#endif
+
 #if WAKEUP_GESTURE
 const uint16_t gesture_key_array[] = {
 	KEY_WAKEUP,
@@ -447,6 +455,7 @@ info_retry:
 	ts->y_num = buf[4];
 	ts->abs_x_max = (uint16_t)((buf[5] << 8) | buf[6]);
 	ts->abs_y_max = (uint16_t)((buf[7] << 8) | buf[8]);
+	ts->max_button_num = buf[11];
 
 
 	if ((buf[1] + buf[2]) != 0xFF) {
@@ -456,6 +465,7 @@ info_retry:
 		ts->y_num = 32;
 		ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
 		ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
+		ts->max_button_num = TOUCH_KEY_NUM;
 
 		if(retry_count < 3) {
 			retry_count++;
@@ -463,9 +473,9 @@ info_retry:
 			goto info_retry;
 		} else {
 			NVT_ERR("Set default fw_ver=%d, x_num=%d, y_num=%d, \
-					abs_x_max=%d, abs_y_max=%d\n",
+					abs_x_max=%d, abs_y_max=%d, max_button_num=%d!\n",
 					ts->fw_ver, ts->x_num, ts->y_num,
-					ts->abs_x_max, ts->abs_y_max);
+					ts->abs_x_max, ts->abs_y_max, ts->max_button_num);
 			ret = -1;
 		}
 	} else {
@@ -930,6 +940,18 @@ static void nvt_ts_work_func(void)
 
 	input_report_key(ts->input_dev, BTN_TOUCH, (finger_cnt > 0));
 
+#if TOUCH_KEY_NUM > 0
+	if (point_data[61] == 0xF8) {
+		for (i = 0; i < ts->max_button_num; i++) {
+			input_report_key(ts->input_dev, touch_key_array[i], ((point_data[62] >> i) & 0x01));
+		}
+	} else {
+		for (i = 0; i < ts->max_button_num; i++) {
+			input_report_key(ts->input_dev, touch_key_array[i], 0);
+		}
+	}
+#endif
+
 	input_sync(ts->input_dev);
 
 	LOG_DONE();
@@ -1182,7 +1204,7 @@ Executive outcomes. 0---succeed. negative---failed
 static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int32_t ret = 0;
-#if WAKEUP_GESTURE
+#if ((TOUCH_KEY_NUM > 0) || WAKEUP_GESTURE)
 	int32_t retry = 0;
 #endif
 
@@ -1247,6 +1269,10 @@ static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_i
 
 	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
 
+#if TOUCH_KEY_NUM > 0
+	ts->max_button_num = TOUCH_KEY_NUM;
+#endif
+
 	ts->int_trigger_type = INT_TRIGGER_TYPE;
 
 
@@ -1265,6 +1291,12 @@ static int32_t nvt_ts_probe(struct i2c_client *client, const struct i2c_device_i
 #endif
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max-1, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max-1, 0, 0);
+#endif
+
+#if TOUCH_KEY_NUM > 0
+	for (retry = 0; retry < ts->max_button_num; retry++) {
+		input_set_capability(ts->input_dev, EV_KEY, touch_key_array[retry]);
+	}
 #endif
 
 #if WAKEUP_GESTURE
