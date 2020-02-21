@@ -1,4 +1,14 @@
 export ARCH=arm64
 make lavender-perf_defconfig
 cp out/.config arch/arm64/configs/lavender-perf_defconfig
-git commit -am "lavender: defconfig: regenerate"
+echo "Manual commit message? y/n"
+read op
+if [ $op == "y" ]
+then
+git commit -a --signoff
+elif [ $op == "n" ]
+then
+git commit -am "lavender: defconfig: regenerate" --signoff
+else
+echo "Wrong input"
+fi
