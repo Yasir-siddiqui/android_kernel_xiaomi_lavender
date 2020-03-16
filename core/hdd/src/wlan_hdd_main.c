@@ -5416,6 +5416,16 @@ int hdd_set_fw_params(struct hdd_adapter *adapter)
 	}
 
 	ret = sme_cli_set_command(adapter->session_id,
+				  WMI_PDEV_PARAM_SET_DFS_CHAN_AGEOUT_TIME,
+				  hdd_ctx->config->dfs_chan_ageout_time,
+				  PDEV_CMD);
+	if (ret) {
+		hdd_err("WMI_PDEV_PARAM_SET_DFS_CHAN_AGEOUT_TIME set failed %d",
+			ret);
+		goto error;
+	}
+
+	ret = sme_cli_set_command(adapter->session_id,
 				  WMI_VDEV_PARAM_ENABLE_RTSCTS,
 				  hdd_ctx->config->rts_profile,
 				  VDEV_CMD);
@@ -6010,6 +6020,8 @@ QDF_STATUS hdd_stop_adapter_ext(struct hdd_context *hdd_ctx,
 						(WLAN_WAIT_TIME_DISCONNECT));
 				if (!rc)
 					hdd_warn("disconn_comp_var wait fail");
+				if (adapter->device_mode == QDF_NDI_MODE)
+					hdd_cleanup_ndi(hdd_ctx, adapter);
 			}
 			if (qdf_ret_status != QDF_STATUS_SUCCESS)
 				hdd_warn("failed to post disconnect");
@@ -7712,8 +7724,6 @@ static QDF_STATUS hdd_abort_sched_scan_all_adapters(struct hdd_context *hdd_ctx)
 	struct hdd_adapter *adapter;
 	int err;
 
-	hdd_enter();
-
 	hdd_for_each_adapter(hdd_ctx, adapter) {
 		if (adapter->device_mode == QDF_STA_MODE ||
 		    adapter->device_mode == QDF_P2P_CLIENT_MODE ||
@@ -7726,8 +7736,6 @@ static QDF_STATUS hdd_abort_sched_scan_all_adapters(struct hdd_context *hdd_ctx)
 				hdd_err("Unable to stop scheduled scan");
 		}
 	}
-
-	hdd_exit();
 
 	return QDF_STATUS_SUCCESS;
 }
@@ -13319,6 +13327,11 @@ static bool hdd_any_adapter_is_assoc(struct hdd_context *hdd_ctx)
 		    WLAN_HDD_GET_AP_CTX_PTR(adapter)->ap_active) {
 			return true;
 		}
+
+		if (adapter->device_mode == QDF_NDI_MODE &&
+		    WLAN_HDD_GET_STATION_CTX_PTR(adapter)->
+		    conn_info.connState == eConnectionState_NdiConnected)
+			return true;
 	}
 
 	return false;
