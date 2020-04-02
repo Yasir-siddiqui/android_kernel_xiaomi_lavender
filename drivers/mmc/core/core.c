@@ -33,9 +33,6 @@
 #include <linux/jiffies.h>
 #include <linux/sched.h>
 
-#define CREATE_TRACE_POINTS
-#include <trace/events/mmc.h>
-
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
@@ -51,11 +48,6 @@
 #include "mmc_ops.h"
 #include "sd_ops.h"
 #include "sdio_ops.h"
-
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_erase_start);
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_erase_end);
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_rw_start);
-EXPORT_TRACEPOINT_SYMBOL_GPL(mmc_blk_rw_end);
 
 /* If the device is not responding */
 #define MMC_CORE_TIMEOUT_MS	(10 * 60 * 1000) /* 10 minute timeout */
@@ -1045,7 +1037,6 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 					&host->io_lat_write, delta_us);
 			}
 #endif
-			trace_mmc_blk_rw_end(cmd->opcode, cmd->arg, mrq->data);
 		}
 
 		if (mrq->stop) {
@@ -1809,9 +1800,6 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 		} else
 			areq->mrq->lat_hist_enabled = 0;
 #endif
-		trace_mmc_blk_rw_start(areq->mrq->cmd->opcode,
-				       areq->mrq->cmd->arg,
-				       areq->mrq->data);
 		__mmc_start_data_req(host, areq->mrq);
 	}
 
@@ -2289,15 +2277,6 @@ void mmc_set_ios(struct mmc_host *host)
 
 	host->ops->set_ios(host, ios);
 	if (ios->old_rate != ios->clock) {
-		if (likely(ios->clk_ts)) {
-			char trace_info[80];
-			snprintf(trace_info, 80,
-				"%s: freq_KHz %d --> %d | t = %d",
-				mmc_hostname(host), ios->old_rate / 1000,
-				ios->clock / 1000, jiffies_to_msecs(
-					(long)jiffies - (long)ios->clk_ts));
-			trace_mmc_clk(trace_info);
-		}
 		ios->old_rate = ios->clock;
 		ios->clk_ts = jiffies;
 	}
@@ -3167,7 +3146,6 @@ static int mmc_cmdq_do_erase(struct mmc_cmdq_req *cmdq_req,
 
 	fr = from;
 	nr = to - from + 1;
-	trace_mmc_blk_erase_start(arg, fr, nr);
 
 	qty = mmc_get_erase_qty(card, from, to);
 
@@ -3217,7 +3195,6 @@ static int mmc_cmdq_do_erase(struct mmc_cmdq_req *cmdq_req,
 	} while (!(cmd->resp[0] & R1_READY_FOR_DATA) ||
 		 (R1_CURRENT_STATE(cmd->resp[0]) == R1_STATE_PRG));
 out:
-	trace_mmc_blk_erase_end(arg, fr, nr);
 	return err;
 }
 
@@ -3233,7 +3210,6 @@ static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 
 	fr = from;
 	nr = to - from + 1;
-	trace_mmc_blk_erase_start(arg, fr, nr);
 
 	qty = mmc_get_erase_qty(card, from, to);
 
@@ -3338,7 +3314,6 @@ static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 		 (R1_CURRENT_STATE(cmd.resp[0]) == R1_STATE_PRG));
 out:
 	mmc_retune_release(card->host);
-	trace_mmc_blk_erase_end(arg, fr, nr);
 	return err;
 }
 
