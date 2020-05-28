@@ -2237,17 +2237,6 @@ static void sdhci_msm_bus_voting(struct sdhci_host *host, u32 enable)
 	if (enable) {
 		sdhci_msm_bus_cancel_work_and_set_vote(host, bw);
 	} else {
-		/*
-		 * If clock gating is enabled, then remove the vote
-		 * immediately because clocks will be disabled only
-		 * after SDHCI_MSM_MMC_CLK_GATE_DELAY and thus no
-		 * additional delay is required to remove the bus vote.
-		 */
-#ifdef CONFIG_MMC_CLKGATE
-		if (host->mmc->clkgate_delay)
-			sdhci_msm_bus_cancel_work_and_set_vote(host, 0);
-		else
-#endif
 			sdhci_msm_bus_queue_work(host);
 	}
 }
@@ -4819,11 +4808,6 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	/* Enable pwr irq interrupts */
 	sdhci_msm_writel_relaxed(INT_MASK, host,
 		msm_host_offset->CORE_PWRCTL_MASK);
-
-#ifdef CONFIG_MMC_CLKGATE
-	/* Set clock gating delay to be used when CONFIG_MMC_CLKGATE is set */
-	msm_host->mmc->clkgate_delay = SDHCI_MSM_MMC_CLK_GATE_DELAY;
-#endif
 
 	/* Set host capabilities */
 	msm_host->mmc->caps |= msm_host->pdata->mmc_bus_width;
