@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 echo "Cloning dependencies"
-git clone --depth=1 https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender -b lite kernel
+git clone --depth=1 https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender -b lite-new kernel
 cd kernel
 git clone --depth=1 https://github.com/Haseo97/Clang-10.0.0 clang
 git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b android-9.0.0_r39 stock
