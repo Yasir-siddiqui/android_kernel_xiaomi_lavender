@@ -13,7 +13,7 @@ jobs:
            git clone https://github.com/akhilnarang/scripts && cd scripts && bash setup/android_build_env.sh && cd ..
            mkdir notkernel
            cd notkernel
-           wget https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender/raw/master/.circleci/build.sh
+           wget https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender/raw/master-2/.circleci/build.sh
            source build.sh
 workflows:
   version: 2.1
