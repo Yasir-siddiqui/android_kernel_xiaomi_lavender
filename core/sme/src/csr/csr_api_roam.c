@@ -15958,6 +15958,7 @@ csr_roam_set_pmkid_cache(tpAniSirGlobal pMac, uint32_t sessionId,
 	struct csr_roam_session *pSession = CSR_GET_SESSION(pMac, sessionId);
 	uint32_t i = 0;
 	tPmkidCacheInfo *pmksa;
+	eCsrAuthType akm_type;
 
 	if (!pSession) {
 		sme_err("session %d not found", sessionId);
@@ -15992,6 +15993,17 @@ csr_roam_set_pmkid_cache(tpAniSirGlobal pMac, uint32_t sessionId,
 		/* Update new entry */
 		csr_update_pmk_cache(pSession, pmksa);
 
+		akm_type = pSession->connectedProfile.AuthType;
+		if ((akm_type == eCSR_AUTH_TYPE_FT_RSN ||
+		     akm_type == eCSR_AUTH_TYPE_FT_FILS_SHA256 ||
+		     akm_type == eCSR_AUTH_TYPE_FT_FILS_SHA384 ||
+		     akm_type == eCSR_AUTH_TYPE_FT_SUITEB_EAP_SHA384) &&
+		    pSession->connectedProfile.MDID.mdiePresent) {
+			sme_debug("Auth type is %d update the MDID in cache",
+				  akm_type);
+			csr_update_pmk_cache_ft(pMac,
+						sessionId, pmksa->cache_id);
+		}
 	}
 	return QDF_STATUS_SUCCESS;
 }
