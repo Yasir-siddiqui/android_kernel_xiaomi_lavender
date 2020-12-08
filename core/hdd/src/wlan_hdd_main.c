@@ -6270,6 +6270,14 @@ QDF_STATUS hdd_stop_adapter_ext(struct hdd_context *hdd_ctx,
 		/* Diassociate with all the peers before stop ap post */
 		if (test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags))
 			wlan_hdd_del_station(adapter);
+
+		qdf_ret_status =
+			sme_roam_del_pmkid_from_cache(hdd_ctx->mac_handle,
+						      adapter->session_id,
+						      NULL, true);
+		if (QDF_IS_STATUS_ERROR(qdf_ret_status))
+			hdd_err("Cannot flush PMKSA Cache");
+
 		/* Flush IPA exception path packets */
 		sap_config = &adapter->session.ap.sap_config;
 		if (sap_config)
@@ -10027,7 +10035,8 @@ void hdd_indicate_mgmt_frame(tSirSmeMgmtFrameInd *frame_ind)
 						  frame_ind->frameBuf,
 						  frame_ind->frameType,
 						  frame_ind->rxChan,
-						  frame_ind->rxRssi);
+						  frame_ind->rxRssi,
+						  frame_ind->rx_flags);
 			wlan_objmgr_vdev_release_ref(vdev, WLAN_OSIF_ID);
 		}
 
@@ -10044,7 +10053,8 @@ void hdd_indicate_mgmt_frame(tSirSmeMgmtFrameInd *frame_ind)
 						frame_ind->frameBuf,
 						frame_ind->frameType,
 						frame_ind->rxChan,
-						frame_ind->rxRssi);
+						frame_ind->rxRssi,
+						frame_ind->rx_flags);
 }
 
 void hdd_acs_response_timeout_handler(void *context)
