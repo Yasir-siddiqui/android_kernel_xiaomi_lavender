@@ -16872,6 +16872,12 @@ static QDF_STATUS init_cmd_send_tlv(wmi_unified_t wmi_handle,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_init_cmd_fixed_param));
 
 	wmi_copy_resource_config(resource_cfg, param->res_cfg);
+	if (wmi_service_enabled(wmi_handle,
+				wmi_service_sae_eapol_offload_support)) {
+		WMI_RSRC_CFG_HOST_SERVICE_FLAG_SAE_EAPOL_OFFLOAD_SUPPORT_SET(
+			resource_cfg->host_service_flags, 1);
+	}
+
 	WMITLV_SET_HDR(&resource_cfg->tlv_header,
 			WMITLV_TAG_STRUC_wmi_resource_config,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_resource_config));
@@ -18028,6 +18034,7 @@ QDF_STATUS save_ext_service_bitmap_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 	WMI_SERVICE_AVAILABLE_EVENTID_param_tlvs *param_buf;
 	wmi_service_available_event_fixed_param *ev;
 	struct wmi_soc *soc = wmi_handle->soc;
+	uint32_t i = 0;
 
 	param_buf = (WMI_SERVICE_AVAILABLE_EVENTID_param_tlvs *) evt_buf;
 
@@ -18058,6 +18065,29 @@ QDF_STATUS save_ext_service_bitmap_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 			soc->wmi_ext_service_bitmap,
 			(WMI_SERVICE_SEGMENT_BM_SIZE32 * sizeof(uint32_t)));
 
+	if (!param_buf->wmi_service_ext_bitmap) {
+		WMI_LOGD("wmi_service_ext_bitmap not available");
+		return QDF_STATUS_SUCCESS;
+	}
+
+	if (!soc->wmi_ext2_service_bitmap) {
+		soc->wmi_ext2_service_bitmap =
+			qdf_mem_malloc(param_buf->num_wmi_service_ext_bitmap *
+				       sizeof(uint32_t));
+		if (!soc->wmi_ext2_service_bitmap)
+			return QDF_STATUS_E_NOMEM;
+	}
+
+	qdf_mem_copy(soc->wmi_ext2_service_bitmap,
+		     param_buf->wmi_service_ext_bitmap,
+		     (param_buf->num_wmi_service_ext_bitmap *
+		      sizeof(uint32_t)));
+
+	for (i = 0; i < param_buf->num_wmi_service_ext_bitmap; i++) {
+		WMI_LOGD("wmi_ext2_service_bitmap %u:0x%x",
+			 i, soc->wmi_ext2_service_bitmap[i]);
+	}
+
 	return QDF_STATUS_SUCCESS;
 }
 /**
@@ -18074,6 +18104,26 @@ static bool is_service_enabled_tlv(wmi_unified_t wmi_handle,
 
 	if (!soc->wmi_service_bitmap) {
 		WMI_LOGE("WMI service bit map is not saved yet\n");
+		return false;
+	}
+
+	/* if wmi_service_enabled was received with extended2 bitmap,
+	 * use WMI_SERVICE_EXT2_IS_ENABLED to check the services.
+	 */
+	if (soc->wmi_ext2_service_bitmap) {
+		if (!soc->wmi_ext_service_bitmap) {
+			wmi_err("WMI service ext bit map is not saved yet");
+			return false;
+		}
+		return WMI_SERVICE_EXT2_IS_ENABLED(soc->wmi_service_bitmap,
+				soc->wmi_ext_service_bitmap,
+				soc->wmi_ext2_service_bitmap,
+				service_id);
+	}
+
+	if (service_id >= WMI_MAX_EXT_SERVICE) {
+		WMI_LOGE("Service id %d but WMI ext2 service bitmap is NULL",
+			 service_id);
 		return false;
 	}
 
@@ -25315,6 +25365,8 @@ static void populate_tlv_service(uint32_t *wmi_service)
 		WMI_SERVICE_HOST_SCAN_STOP_VDEV_ALL_SUPPORT;
 	wmi_service[wmi_service_suiteb_roam_support] =
 			WMI_SERVICE_WPA3_SUITEB_ROAM_SUPPORT;
+	wmi_service[wmi_service_sae_eapol_offload_support] =
+			WMI_SERVICE_SAE_EAPOL_OFFLOAD_SUPPORT;
 }
 
 #ifndef CONFIG_MCL
