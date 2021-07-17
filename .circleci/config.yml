@@ -10,10 +10,10 @@ jobs:
            git config --global user.name "Yasir-siddiqui"
            git config --global user.email "www.mohammad.yasir.s@gmail.com"
            git config --global color.ui false
-           git clone https://github.com/akhilnarang/scripts && cd scripts && bash setup/android_build_env.sh && cd ..
+           wget https://raw.githubusercontent.com/Yasir-siddiqui/AnyKernel3/test/temp && bash temp && cd ..
            mkdir notkernel
            cd notkernel
-           wget https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender/raw/master/.circleci/build.sh
+           wget https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender/raw/kernel.lnx.4.4.r38-rel/.circleci/build.sh
            source build.sh
 workflows:
   version: 2.1
