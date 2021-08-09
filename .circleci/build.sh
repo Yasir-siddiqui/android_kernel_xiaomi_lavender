@@ -3,7 +3,7 @@ echo "Cloning dependencies"
 git clone --depth=1 https://github.com/Yasir-siddiqui/android_kernel_xiaomi_lavender -b kernel.lnx.4.4.r38-rel kernel
 cd kernel
 git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
-git clone --depth=1 https://github.com/Yasir-siddiqui/AnyKernel3 AnyKernel
+git clone -b master https://github.com/Yasir-siddiqui/AnyKernel3 AnyKernel
 echo "Done"
 IMAGE=$(pwd)/out/arch/arm64/boot/Image.gz-dtb
 TANGGAL=$(date +"%F-%S")
