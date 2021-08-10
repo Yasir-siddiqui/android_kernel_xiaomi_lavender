@@ -41,7 +41,7 @@ void sendnlmsg(char *msg)
 	memcpy(NLMSG_DATA(nlh), msg, sizeof(char));
 	pr_debug("send message: %d\n", *(char *)NLMSG_DATA(nlh));
 
-	ret = nlmsg_unicast(nl_sk, skb_1, pid);
+	ret = netlink_unicast(nl_sk, skb_1, pid, MSG_DONTWAIT);
 	if (ret)
 		pr_err("failed to send msg error:0x%x\n", ret);
 }
